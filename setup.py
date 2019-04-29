@@ -9,7 +9,7 @@ setup(name='estore',
     zip_safe=False,
     include_package_data=True,
     install_requires = [
-        'asynctio',
+        'asyncio',
         'aiohttp'
     ],
     packages=find_packages())
