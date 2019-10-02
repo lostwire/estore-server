@@ -8,8 +8,15 @@ setup(name='estore',
     license='BSD',
     zip_safe=False,
     include_package_data=True,
+    entry_points = { 'console_scripts': 'estore=estore.cli:cli'},
     install_requires = [
+        'aiopg',
         'asyncio',
-        'aiohttp'
+        'aiohttp',
+        'Click',
+        'aio-pika',
+        'cryptography',
+        'aiohttp-session',
+        'configparser2',
     ],
     packages=find_packages())
