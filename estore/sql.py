@@ -33,10 +33,10 @@ CREATE_PROCEDURE_ADD_SUBSCRIPTION = """CREATE PROCEDURE add_subscription(id UUID
     INSERT INTO subscription (id, consumer, routing_key) VALUES (id, consumer, routing_key);
     $$;"""
 DROP_PROCEDURE_ADD_EVENT = 'DROP PROCEDURE IF EXISTS add_event'
-CREATE_PROCEDURE_ADD_EVENT = """CREATE PROCEDURE add_event(id UUID, name VARCHAR(100))
+CREATE_PROCEDURE_ADD_EVENT = """CREATE PROCEDURE add_event(stream UUID, name VARCHAR(100), version INT, body TEXT, headers JSON)
     LANGUAGE SQL
     AS $$
-    INSERT INTO event (id, name) VALUES (id, name);
+    INSERT INTO event (stream, name, version, body, headers) VALUES (stream, name, version, body, headers);
     $$;"""
 
 QUERIES = [

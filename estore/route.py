@@ -1,15 +1,15 @@
 import estore.view.auth
+import estore.view.consumer
 
-async def attach(app, db, pika):
-    auth = estore.view.auth.View(injector)
+def attach(app, model):
+    auth = estore.view.auth.View(model)
+    consumer = estore.view.consumer.init(model)
+    app.router.add_get('/ws', consumer.websocket)
     app.router.add_post('/login', auth.login)
     app.router.add_post('/logout', auth.logout)
     app.router.add_post('/register', auth.register)
-    """
-    app.router.add_get('/', functools.partial(req_wrapper, functools.partial(views.index, app.loop)))
-    app.router.add_post('/testing', functools.partial(req_wrapper, handler.testing))
-    app.router.add_post('/subscribe/{entity}', functools.partial(req_wrapper, handler.subscribe))
-    app.router.add_post('/{stream}/{name}', functools.partial(req_wrapper, handler.add_event))
-    app.router.add_get('/ws', functools.partial(req_wrapper, handler.notify))
-    app.router.add_get('/{stream}', functools.partial(req_wrapper, handler.get_events))
-    """
+    app.router.add_post('/subscribe', consumer.subscribe)
+    app.router.add_post('/test', auth.test)
+    app.router.add_get('/{stream}', auth.test)
+    app.router.add_post('/{stream}/{name}', consumer.add_event)
+    app.router.add_get('/get_stream/{stream}', consumer.get_stream)
