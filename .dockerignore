@@ -1,2 +1,7 @@
 .git/
 *config.ini*
+.gitignore
+README.md
+docker-compose.yaml
+*egg-info/
+pgdata/
