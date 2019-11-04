@@ -1,19 +1,21 @@
 import os
-import aiopg
 import atexit
 import base64
-import aiohttp.web
 import asyncio
-import aio_pika
 import functools
+
+import aiopg
+import aio_pika
+import configparser
+import aiohttp.web
+import aiohttp_session
+import aiohttp_session.cookie_storage
+import cryptography.fernet
+
 import estore.db
 import estore.sql
 import estore.route
 import estore.model
-import configparser
-import aiohttp_session
-import aiohttp_session.cookie_storage
-import cryptography.fernet
 
 def init(loop=None):
     if not loop:
@@ -40,15 +42,21 @@ class App(object):
         self._exchange = await self._channel.declare_exchange('event', aio_pika.ExchangeType.TOPIC)
         self._model = estore.model.init(self._db, self._pika, self._channel, self._exchange)
 
-    async def initialize(self):
+    async def run_queries(self, queries):
         output = []
         with (await self._db.cursor()) as cur:
-            for query in estore.sql.QUERIES:
+            for query in queries:
                 await cur.execute(query)
                 output.append(query)
         channel = await self._pika.channel()
         await channel.declare_exchange('event', aio_pika.ExchangeType.TOPIC)
         return output
+
+    async def initialize(self):
+        return await self.run_queries(estore.sql.INITIALIZE)
+
+    async def reinitialize(self):
+        return await self.run_queries(estore.sql.REINITIALIZE)
 
     async def cleanup(self, wg=None):
         if self._db:
