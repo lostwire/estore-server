@@ -37,7 +37,12 @@ class Manager(object):
     async def add_event(self, stream, name, version, body, headers):
         await self._db.execute(
             'CALL add_event(%s, %s, %s, %s, %s)', [stream, name, version, body, json.dumps(headers)])
-        message = aio_pika.Message(body.encode(), content_type=headers['Content-Type'])
+        headers['stream'] = stream
+        headers['version'] = version
+        message = aio_pika.Message(body.encode(), content_type=headers['Content-Type'], headers=headers)
         await self._exchange.publish(message, routing_key=name)
     async def get_stream(self, stream):
-        return await self._db.fetch_all('SELECT id, seq, name, version, body, headers, created FROM event WHERE stream=%s', [stream])
+        output = await self._db.fetch_all('SELECT id, seq, name, version, body, headers, created FROM event WHERE stream=%s ORDER BY version', [stream])
+        if not output:
+            output = []
+        return output
