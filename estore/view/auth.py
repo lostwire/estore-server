@@ -13,8 +13,7 @@ class View(object):
         session = await aiohttp_session.get_session(req)
         if 'id' in session:
             return aiohttp.web.Response(text="Already logged in")
-        #session['id'] = data['id']
-        session['id'] = '79700f4d-03be-4bba-94eb-2c43b0e7750c'
+        session['id'] = data['id']
         return aiohttp.web.Response(text=session['id'])
     async def logout(self, req):
         session = await aiohttp_session.get_session(req)

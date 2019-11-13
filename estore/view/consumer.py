@@ -1,6 +1,8 @@
+import json
 import aio_pika
 import aiohttp.web
 import aiohttp_session
+import functools
 
 def init(model):
     return View(model)
@@ -18,13 +20,17 @@ class View(object):
         name = req.match_info['name']
         stream = req.match_info['stream']
         version = headers['Version']
+        del headers['Version']
         body = await req.text()
         await self._model.add_event(stream, name, version, body, headers)
         return aiohttp.web.Response(text='Added')
     async def on_message(self, ws, msg):
-        await ws.send_str(msg.body.decode())
-            #await ws.send_json()
-            #ws.close()
+        data = {
+            'headers': dict(msg.headers),
+            'body': msg.body.decode(),
+            'routing_key': msg.routing_key
+        }
+        await ws.send_json(data)
     def process_headers(self, headers):
         output = {}
         for header in headers:
