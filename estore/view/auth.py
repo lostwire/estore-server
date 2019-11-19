@@ -13,7 +13,11 @@ class View(object):
         session = await aiohttp_session.get_session(req)
         if 'id' in session:
             return aiohttp.web.Response(text="Already logged in")
-        session['id'] = data['id']
+        if 'name' in data:
+            id = await self._model.get_id_by_name(data['name'])
+        else:
+            id = data['id']
+        session['id'] = id
         return aiohttp.web.Response(text=session['id'])
     async def logout(self, req):
         session = await aiohttp_session.get_session(req)
@@ -27,5 +31,4 @@ class View(object):
         await self._model.create_consumer(id, data['name'])
         return aiohttp.web.Response(text=str(id))
     async def test(self, req):
-
         return aiohttp.web.Response(text='adfsa')

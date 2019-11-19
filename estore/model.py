@@ -18,6 +18,9 @@ class Manager(object):
         await self._channel.declare_queue(str(id).encode())
     async def load_consumer(self, id):
         return await self._db.fetch_one('SELECT name FROM consumer WHERE id = %s', [id])
+    async def get_id_by_name(self, name):
+        output = await self._db.fetch_one('SELECT id FROM consumer WHERE name = %s', [name])
+        return output['id']
     async def delete_consumer(self, id):
         await self._db.execute('DELETE FROM consumer WHERE id=%s', [id])
     async def create_subscription(self, consumer, pattern):
