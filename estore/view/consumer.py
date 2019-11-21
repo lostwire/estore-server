@@ -34,6 +34,7 @@ class View(object):
             'body': msg.body.decode(),
             'routing_key': msg.routing_key
         }
+        logger.info("Message sent %s", data)
         await ws.send_json(data)
     def process_headers(self, headers):
         output = {}
@@ -48,9 +49,9 @@ class View(object):
         session = await aiohttp_session.get_session(req)
         await ws.prepare(req)
         await self._model.consume(session['id'], functools.partial(self.on_message, ws))
-        print("Closing!!")
-
+        logger.info("Closing websocker session for %s", session['id'])
         return ws
+
     def process_event(self, entry):
         entry['id'] = str(entry['id'])
         entry['created'] = str(entry['created'])

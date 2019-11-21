@@ -1,8 +1,13 @@
 import json
 import uuid
+import logging
+
 import aio_pika
-import estore.db
 import psycopg2.extras
+
+import estore.db
+
+logger = logging.getLogger(__name__)
 
 def init(db, pika, channel, exchange):
     return Manager(estore.db.Wrapper(db), pika, channel, exchange)
@@ -32,10 +37,11 @@ class Manager(object):
         return await self._db.fetch_all(
             'SELECT id, routing_key FROM subscription WHERE consumer=%s', [consumer])
     async def consume(self, id, callback):
-        queue = await self._channel.declare_queue(id)
+        queue = await self._channel.declare_queue(str(id).encode())
         async with queue.iterator() as queue_iter:
             async for message in queue_iter:
                 async with message.process():
+                    logger.info("Message received %s", message)
                     await callback(message)
     async def add_event(self, stream, name, version, body, headers):
         await self._db.execute(
