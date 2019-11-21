@@ -1,8 +1,11 @@
 import json
+import logging
 import aio_pika
 import aiohttp.web
 import aiohttp_session
 import functools
+
+logger = logging.getLogger(__name__)
 
 def init(model):
     return View(model)
@@ -14,6 +17,7 @@ class View(object):
         session = await aiohttp_session.get_session(req)
         data = await req.post()
         await self._model.create_subscription(session['id'], data['pattern'])
+        logger.info("Subscribed to %s", data['pattern'])
         return aiohttp.web.Response(text='working')
     async def add_event(self, req):
         headers = self.process_headers(req.headers)
@@ -45,6 +49,7 @@ class View(object):
         await ws.prepare(req)
         await self._model.consume(session['id'], functools.partial(self.on_message, ws))
         print("Closing!!")
+
         return ws
     def process_event(self, entry):
         entry['id'] = str(entry['id'])

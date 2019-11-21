@@ -1,9 +1,16 @@
+""" View handling user account related activities
+"""
+
 import json
 import uuid
 import functools
+
 import aiohttp.web
 import aiohttp_session
+
 import estore.model
+
+logger = logging.getLogger(__name__)
 
 class View(object):
     def __init__(self, model):
@@ -14,10 +21,11 @@ class View(object):
         if 'id' in session:
             return aiohttp.web.Response(text="Already logged in")
         if 'name' in data:
-            id = await self._model.get_id_by_name(data['name'])
+            id = str(await self._model.get_id_by_name(data['name']))
         else:
             id = data['id']
         session['id'] = id
+        logger.info("User %s logged in", id)
         return aiohttp.web.Response(text=session['id'])
     async def logout(self, req):
         session = await aiohttp_session.get_session(req)
