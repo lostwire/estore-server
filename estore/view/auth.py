@@ -3,6 +3,7 @@
 
 import json
 import uuid
+import logging
 import functools
 
 import aiohttp.web
