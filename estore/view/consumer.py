@@ -1,9 +1,10 @@
 import json
 import logging
+import functools
+
 import aio_pika
 import aiohttp.web
 import aiohttp_session
-import functools
 
 logger = logging.getLogger(__name__)
 

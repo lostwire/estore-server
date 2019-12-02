@@ -8,9 +8,8 @@ import estore.app
 @click.pass_context
 def cli(ctx, config):
     """ Estore command line interface """
-    loop = asyncio.get_event_loop()
-    app = estore.app.init(loop)
-    atexit.register(loop.run_until_complete, app.cleanup())
+    app = estore.app.init()
+    atexit.register(app.cleanup)
     ctx.obj = app
 
 @cli.command()
@@ -18,7 +17,7 @@ def cli(ctx, config):
 def initialize(ctx):
     """ Initialize estore application """
     loop = ctx.obj.get_loop()
-    results = loop.run_until_complete(ctx.obj.initialize())
+    results = ctx.obj.initialize()
     for result in results:
         click.echo(result)
 

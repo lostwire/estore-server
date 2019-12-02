@@ -52,16 +52,16 @@ class App(object):
         await channel.declare_exchange('event', aio_pika.ExchangeType.TOPIC)
         return output
 
-    async def initialize(self):
-        return await self.run_queries(estore.sql.INITIALIZE)
+    def initialize(self):
+        return self._loop.run_until_complete(await self.run_queries(estore.sql.INITIALIZE))
 
     async def reinitialize(self):
         return await self.run_queries(estore.sql.REINITIALIZE)
 
-    async def cleanup(self, wg=None):
+    def cleanup(self, wg=None):
         if self._db:
             self._db.close()
-            await self._db.wait_closed()
+            self._loop.run_until_complete(self._db.wait_closed())
 
     def run(self):
         app = aiohttp.web.Application(loop=self._loop)
