@@ -55,9 +55,6 @@ class App(object):
     def initialize(self):
         return self._loop.run_until_complete(await self.run_queries(estore.sql.INITIALIZE))
 
-    async def reinitialize(self):
-        return await self.run_queries(estore.sql.REINITIALIZE)
-
     def cleanup(self, wg=None):
         if self._db:
             self._db.close()
