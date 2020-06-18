@@ -1,25 +1,28 @@
 import click
-import atexit
-import asyncio
-import estore.app
+import psycopg2
+import configparser
+
+import estore.sql
 
 @click.group()
-@click.option('--config', envvar='config', default='./config.ini')
+@click.option('--config', envvar='config', default='./config.ini', type=click.Path(exists=True))
 @click.pass_context
 def cli(ctx, config):
     """ Estore command line interface """
-    app = estore.app.init()
-    atexit.register(app.cleanup)
-    ctx.obj = app
+    config_ = configparser.ConfigParser()
+    config_.read(config)
+    ctx.obj = psycopg2.connect(config_['general']['db'])
 
 @cli.command()
 @click.pass_context
 def initialize(ctx):
     """ Initialize estore application """
-    loop = ctx.obj.get_loop()
-    results = ctx.obj.initialize()
-    for result in results:
-        click.echo(result)
+    cursor = ctx.obj.cursor()
+    for query in estore.sql.INITIALIZE:
+        cursor.execute(query)
+        click.echo(query)
+    ctx.obj.commit()
+
 
 if __name__ == '__main__':
     cli()

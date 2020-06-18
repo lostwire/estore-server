@@ -14,6 +14,7 @@ def init(model):
 class View(object):
     def __init__(self, model):
         self._model = model
+
     async def subscribe(self, req):
         session = await aiohttp_session.get_session(req)
         data = await req.post()

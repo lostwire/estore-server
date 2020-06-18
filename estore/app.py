@@ -1,71 +1,67 @@
 import os
-import atexit
+import uuid
 import base64
 import asyncio
-import functools
+import logging
+import collections
 
-import aiopg
-import aio_pika
-import configparser
 import aiohttp.web
+import configparser
 import aiohttp_session
 import aiohttp_session.cookie_storage
 import cryptography.fernet
 
 import estore.db
-import estore.sql
-import estore.route
+import estore.web
+import estore.view
 import estore.model
+import estore.query
 
-def init(loop=None):
-    if not loop:
-        loop = asyncio.get_event_loop()
-    app = App(loop)
-    loop.run_until_complete(app.init())
+
+logger = logging.getLogger(__name__)
+
+
+async def initialize_views(app, models):
+    estore.view.init_auth(app, models.consumer)
+    estore.view.init_event(app, models.event)
+
+
+def set_session(app):
+    fernet_key = cryptography.fernet.Fernet.generate_key()
+    secret_key = base64.urlsafe_b64decode(fernet_key)
+    secret_key = b'N\x1a\x8cu2\x19\x9f\xf2\xbc]\xach\xd5\x0e\xaf\xf6\xb1R\xe4\xd7\x89Q\xfcv\x93\xaa\xf41\x82/E\xd1'
+    aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(secret_key))
+
+
+def initialize_queries(db):
+    queries = {}
+    queries['stream'] = estore.query.Stream(db)
+    queries['event'] = estore.query.Event(db)
+    Queries = collections.namedtuple('Queries', queries.keys())
+    return Queries(*queries.values())
+
+def initialize_models(loop, db, queries):
+    models = {}
+    models['consumer'] = estore.model.Consumer(db)
+    models['stream'] = estore.model.Stream(db)
+    models['event'] = estore.model.Event(loop, db, models['stream'], models['consumer'])
+    Models = collections.namedtuple('Models', models.keys())
+    return Models(*models.values())
+
+async def init(app):
+    config = configparser.ConfigParser()
+    config.read(os.environ.get('CONFIG_PATH', './config.ini'))
+    logger.info(config.sections())
+    
+    db = await estore.db.init(config['general']['db'], app.loop)
+    queries = initialize_queries(db)
+    models = initialize_models(app.loop, db, queries)
+    set_session(app)
+    #app.on_cleanup.append(db.)
+    await initialize_views(app, models)
+
+def create_app():
+    loop = asyncio.get_event_loop()
+    app =  estore.web.Application("root", loop=loop)
+    app.on_startup.append(init)
     return app
-
-class App(object):
-    def __init__(self, loop=None):
-        self._loop = loop
-
-    def get_loop(self):
-        return self._loop
-
-    async def init(self):
-        self._config = configparser.ConfigParser()
-        if 'CONFIG' in os.environ:
-            self._config.read(os.environ['CONFIG'])
-        self._db = await aiopg.create_pool(loop=self._loop,**dict(self._config.items('db')))
-        self._pika = await aio_pika.connect_robust(
-            self._config.get('general', 'amqp_url'), loop=self._loop)
-        self._channel = await self._pika.channel()
-        self._exchange = await self._channel.declare_exchange('event', aio_pika.ExchangeType.TOPIC)
-        self._model = estore.model.init(self._db, self._pika, self._channel, self._exchange)
-
-    async def run_queries(self, queries):
-        output = []
-        with (await self._db.cursor()) as cur:
-            for query in queries:
-                await cur.execute(query)
-                output.append(query)
-        channel = await self._pika.channel()
-        await channel.declare_exchange('event', aio_pika.ExchangeType.TOPIC)
-        return output
-
-    def initialize(self):
-        return self._loop.run_until_complete(await self.run_queries(estore.sql.INITIALIZE))
-
-    def cleanup(self, wg=None):
-        if self._db:
-            self._db.close()
-            self._loop.run_until_complete(self._db.wait_closed())
-
-    def run(self):
-        app = aiohttp.web.Application(loop=self._loop)
-        app.on_cleanup.append(self.cleanup)
-        fernet_key = cryptography.fernet.Fernet.generate_key()
-        secret_key = base64.urlsafe_b64decode(fernet_key)
-        secret_key = b'N\x1a\x8cu2\x19\x9f\xf2\xbc]\xach\xd5\x0e\xaf\xf6\xb1R\xe4\xd7\x89Q\xfcv\x93\xaa\xf41\x82/E\xd1'
-        estore.route.attach(app, self._model)
-        aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(secret_key))
-        aiohttp.web.run_app(app)
