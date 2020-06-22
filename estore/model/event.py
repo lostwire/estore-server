@@ -45,7 +45,7 @@ class Event:
                     await self.__db.execute('CALL add_event(%s, %s, %s, %s, %s)', (stream_id, name, version, body, headers))
                 logger.info(f"Number of consumers: {len(self.__consumers)}")
                 for queue in self.__consumers:
-                    await self.__consumers[queue]['queue'].put('stuff')
+                    await self.__consumers[queue]['queue'].put({'one':'stuff'})
 
     async def __init_consumer(self, consumer_id):
         consumer = self.__consumers[consumer_id]
@@ -102,8 +102,9 @@ class Event:
             query = estore.sql.SELECT_GET_STREAM_SNAPSHOT
         else:
             query = estore.sql.SELECT_GET_STREAM
-        results = await self.__db.execute(query, stream_id)
-        keys = list(map(operator.attrgetter('name'), results.description))
-        Event = collections.namedtuple('Event', keys)
-        async for item in results:
-            yield Event(*item)
+        async with self.__database.acquire() as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute(query, (stream_id,))
+                keys = list(map(operator.attrgetter('name'), cursor.description))
+                async for item in cursor:
+                    yield dict(zip(keys, map(str,item)))

@@ -19,6 +19,7 @@ def init(app, event_model):
     event = Event(app.loop, event_model)
     app.add_post('/{stream}/{name}', event.add)
     app.add_get('/ws', event.websocket)
+    app.add_get('/stream/{stream_id}', event.get_stream)
 
 class Event(object):
     def __init__(self, loop, event_model):
@@ -67,13 +68,14 @@ class Event(object):
         return ws
 
     def process_event(self, entry):
+        logger.info(entry)
         entry['id'] = str(entry['id'])
         entry['created'] = str(entry['created'])
         return entry
 
     async def get_stream(self, req):
-        stream = req.match_info['stream']
+        stream = req.match_info['stream_id']
         output = []
-        for entry in await self._model.get_stream(stream):
-            output.append(self.process_event(entry))
+        async for entry in self.__event_model.get_stream(stream):
+            output.append(entry)
         return aiohttp.web.json_response(output)
