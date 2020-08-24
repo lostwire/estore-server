@@ -12,14 +12,18 @@ import estore.store
 
 logger = logging.getLogger(__name__)
 def process_headers(headers):
-    return dict(map(lambda x: (x[0].split('X-ES-')[1], x[1]), filter(lambda x: x[0].startswith('X-ES-'), headers.items())))
+    return dict(map(
+        lambda x: (x[0].split('X-ES-')[1], x[1]),
+        filter(lambda x: x[0].startswith('X-ES-'), headers.items())))
+
 
 def init(app, store):
-    event = Event(store, app.loop)
+    event = Event(store)
     app.add_post('/{stream}/{name}', event.add)
     app.add_get('/ws', event.websocket)
     app.add_get('/ws/{start}', event.websocket, name='with_start')
     app.add_get('/stream/{stream_id}', event.stream)
+
 
 async def get_event_from_request(request):
     headers = process_headers(request.headers)
@@ -30,14 +34,16 @@ async def get_event_from_request(request):
     return estore.store.Event('.'.join((stream, name)), dict(body), headers)
 
 
+def get_stream_id_from_request(request):
+    return request.match_info['stream_id']
+
+
 class Event(object):
-    def __init__(self, store, loop):
+    def __init__(self, store):
         self.__store = store
-        self.__loop = loop
 
     async def add(self, request):
-        event = await get_event_from_request(request)
-        await self.__store.append(event)
+        await self.__store.append(await get_event_from_request(request))
         return aiohttp.web.Response(text='Added')
 
     async def __consume(self, ws, start=None):
@@ -50,11 +56,10 @@ class Event(object):
     async def websocket(self, req):
         ws = aiohttp.web.WebSocketResponse()
         await ws.prepare(req)
-        task = asyncio.ensure_future(self.__consume(ws, req.match_info.get('start', None)), loop=self.__loop)
+        task = asyncio.ensure_future(self.__consume(ws, req.match_info.get('start', None)))
         try:
             async for msg in ws:
-                logger.info(msg.type)
-                logger.info(msg.data)
+                pass
         except Exception as e:
             pass
         await ws.close()
@@ -63,9 +68,6 @@ class Event(object):
         return ws
 
     async def stream(self, req):
-        print(await length(self.__store))
-        stream = uuid.UUID(req.match_info['stream_id'])
-        output = []
-        async for item in await self.__store[0:await length(self.__store)]:
-            output.append(item.dict())
-        return aiohttp.web.json_response(output)
+        return aiohttp.web.json_response(
+            list(map(lambda i: i.dict(),
+            await self.__store[get_stream_id_from_request(request)])))
