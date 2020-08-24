@@ -1,15 +1,23 @@
-import asyncio
 import uuid
 import json
+import logging
+import asyncio
 import operator
 import collections
-import logging
 
 import psycopg2.errors
 
 import estore.sql
 
 logger = logging.getLogger(__name__)
+
+async def iterator(database, query, args, factory):
+    async with database.acquire() as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(query, (stream_id,))
+            keys = list(map(operator.attrgetter('name'), cursor.description))
+            async for item in cursor:
+                yield dict(zip(keys, map(str,item)))
 
 class Event:
     def __init__(self, loop, database, stream_model, consumer_model):
@@ -37,6 +45,7 @@ class Event:
         async with self.__database.acquire() as conn:
             async with conn.cursor() as cursor:
                 try:
+                    logger.info("Yes!")
                     await cursor.execute('CALL add_event(%s, %s, %s, %s, %s)', (stream_id, name, version, body, headers))
                 except psycopg2.errors.UniqueViolation:
                     pass

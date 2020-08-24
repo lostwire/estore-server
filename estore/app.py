@@ -15,15 +15,15 @@ import estore.db
 import estore.web
 import estore.view
 import estore.model
-import estore.query
+import estore.store
+import estore.builtins
 
 
 logger = logging.getLogger(__name__)
 
 
-async def initialize_views(app, models):
-    estore.view.init_auth(app, models.consumer)
-    estore.view.init_event(app, models.event)
+async def initialize_views(app, store):
+    estore.view.init_event(app, store)
 
 
 def set_session(app):
@@ -33,35 +33,19 @@ def set_session(app):
     aiohttp_session.setup(app, aiohttp_session.cookie_storage.EncryptedCookieStorage(secret_key))
 
 
-def initialize_queries(db):
-    queries = {}
-    queries['stream'] = estore.query.Stream(db)
-    queries['event'] = estore.query.Event(db)
-    Queries = collections.namedtuple('Queries', queries.keys())
-    return Queries(*queries.values())
-
-def initialize_models(loop, db, queries):
-    models = {}
-    models['consumer'] = estore.model.Consumer(db)
-    models['stream'] = estore.model.Stream(db)
-    models['event'] = estore.model.Event(loop, db, models['stream'], models['consumer'])
-    Models = collections.namedtuple('Models', models.keys())
-    return Models(*models.values())
-
 async def init(app):
     config = configparser.ConfigParser()
     config.read(os.environ.get('CONFIG_PATH', './config.ini'))
     logger.info(config.sections())
-    
-    db = await estore.db.init(config['general']['db'], app.loop)
-    queries = initialize_queries(db)
-    models = initialize_models(app.loop, db, queries)
+    store = estore.store.Store(await estore.db.init(config['general']['db'], app.loop))
+    store = estore.store.Store(await estore.db.init('postgresql://postgres:example@estore-db/estore', app.loop))
     set_session(app)
-    #app.on_cleanup.append(db.)
-    await initialize_views(app, models)
+    await initialize_views(app, store)
+
 
 def create_app():
+    estore.builtins.register()
     loop = asyncio.get_event_loop()
-    app =  estore.web.Application("root", loop=loop)
+    app = estore.web.Application("root", loop=loop)
     app.on_startup.append(init)
     return app

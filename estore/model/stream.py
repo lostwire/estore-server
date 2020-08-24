@@ -20,6 +20,6 @@ class Stream:
             async with self.__database.acquire() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
-                        "INSERT INTO stream (id, data) VALUES (%s, %s)", stream_id, data)
+                        "INSERT INTO stream (id, data) VALUES (%s, %s)", (stream_id, data))
         except psycopg2.errors.UniqueViolation:
             raise estore.errors.AlreadyExists(f"Stream '{stream_id}' already exists")

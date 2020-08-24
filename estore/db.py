@@ -1,4 +1,6 @@
 import aiopg
+import pypika
+import pypika.terms
 import psycopg2.extras
 
 async def init(url, loop):
@@ -31,3 +33,42 @@ class Database:
         if not self.__connection.closed:
             self.__connection.close()
             await self.__connection.wait_closed()
+
+def iterate(database, query, args=None):
+    pass
+
+def execute(database, query, args=None):
+    pass
+
+async def insert_dict(database, table_name, data):
+    pass
+
+async def dummy_item_factory(item):
+    return item
+
+async def insert(database, table_name, data):
+    columns, values = zip(*data.items())
+    query = pypika.Query.into(table_name).columns(*columns).insert(*map(pypika.terms.PseudoColumn, ['%s']*len(values)))
+    print(query.get_sql())
+    async with database.acquire() as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(query.get_sql(), values)
+
+async def iterator(database, query, params=None, item_factory=dummy_item_factory):
+    async with database.acquire() as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(query, params)
+            async for item in cursor:
+                yield await item_factory(item)
+
+async def fetchone(database, query, params=None, item_factory=dummy_item_factory):
+    async with database.acquire() as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(query, params)
+            return await item_factory(await cursor.fetchone())
+
+
+
+
+
+
