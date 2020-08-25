@@ -25,7 +25,6 @@ class EventConsumer:
         return self
 
     def __del__(self):
-        logger.info("Dying...")
         self.__cleanup_callback(self.__queue)
 
     async def __call__(self, event):
@@ -33,31 +32,31 @@ class EventConsumer:
 
 
 class EventCollection:
-    def __init__(self, store, query, database, limits=None):
+    def __init__(self, store, query, database, with_queue=True):
         self.__store = store
         self.__query = query
         self.__database = database
-        self.__limits = limits
+        self.__with_queue = with_queue
 
-    def __create(self, query, limits=None):
-        return self.__class__(self.__store, query, self.__database, limits=limits)
+    def __create(self, query, with_queue=True):
+        return self.__class__(self.__store, query, self.__database, with_queue=with_queue)
 
     def __getitem__(self, item):
         if isinstance(item, slice):
-            return self.__create(self.__query.getitem(item), item)
+            return self.__create(self.__query.getitem(item), with_queue=not bool(item.stop))
         if isinstance(item, uuid.UUID):
-            return self.__create(self.__query.filter.stream == str(item))
+            return self.__create(self.__query.filter.stream == str(item), with_queue=False)
 
     async def __length__(self):
         results = await estore.db.fetchone(self.__database, str(self.__query.length))
         return results[0]
 
     def __aiter__(self):
-        if self.__limits and bool(self.__limits.stop):
-            return estore.db.iterator(self.__database, str(self.__query), item_factory=self.__row_to_event)
-        return asyncstdlib.itertools.chain(
-            estore.db.iterator(self.__database, str(self.__query), item_factory=self.__row_to_event),
-            self.__store.subscribe())
+        if self.__with_queue:
+            return asyncstdlib.itertools.chain(
+                estore.db.iterator(self.__database, str(self.__query), item_factory=self.__row_to_event),
+                self.__store.subscribe())
+        return estore.db.iterator(self.__database, str(self.__query), item_factory=self.__row_to_event)
 
     async def __row_to_event(self, item):
         return Event(item[3], json.loads(item[4]), { 'version': item[2], 'id': item[0], 'seq': item[6] })

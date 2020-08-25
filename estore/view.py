@@ -35,7 +35,7 @@ async def get_event_from_request(request):
 
 
 def get_stream_id_from_request(request):
-    return request.match_info['stream_id']
+    return uuid.UUID(request.match_info['stream_id'])
 
 
 class Event(object):
@@ -67,7 +67,8 @@ class Event(object):
         logger.info("Closing websocket session for %s", task)
         return ws
 
-    async def stream(self, req):
-        return aiohttp.web.json_response(
-            list(map(lambda i: i.dict(),
-            await self.__store[get_stream_id_from_request(request)])))
+    async def stream(self, request):
+        output = []
+        async for item in await self.__store[get_stream_id_from_request(request)]:
+            output.append(item.dict())
+        return aiohttp.web.json_response(output)

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 async def init(app):
     config = configparser.ConfigParser()
     config.read(os.environ.get('CONFIG_PATH', './config.ini'))
-    estore.view.init(app, estore.store.Store(await estore.db.init(config['general']['db'])))
+    estore.view.init(app, estore.store.Store(await estore.db.init(config['general']['db'], app.loop)))
 
 
 def create_app():

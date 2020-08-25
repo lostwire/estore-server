@@ -1,8 +1,8 @@
-CREATE_EXTENSION_UUID = 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'
+import pypika
+import pypika.terms
+import functools
 
-CREATE_TABLE_AGGREGATE = """CREATE TABLE IF NOT EXISTS aggregate (
-    id UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v1(),
-    name VARCHAR(100) NOT NULL)"""
+CREATE_EXTENSION_UUID = 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'
 
 CREATE_TABLE_STREAM = """CREATE TABLE IF NOT EXISTS stream (
     id UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v1(),
@@ -20,36 +20,6 @@ CREATE_TABLE_EVENT = """CREATE TABLE IF NOT EXISTS event (
     headers JSONB NOT NULL DEFAULT '{}',
     UNIQUE(stream, version))"""
 
-CREATE_TABLE_CONSUMER = """CREATE TABLE IF NOT EXISTS consumer (
-    id UUID PRIMARY KEY NOT NULL,
-    name VARCHAR(100),
-    current_sequence INT NOT NULL DEFAULT 0,
-    UNIQUE(name))"""
-
-CREATE_TABLE_SUBSCRIPTION = """CREATE TABLE IF NOT EXISTS subscription (
-    id UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v1(),
-    consumer UUID NOT NULL REFERENCES consumer(id),
-    routing_key VARCHAR(100) NOT NULL,
-    UNIQUE(consumer, routing_key))"""
-
-CREATE_PROCEDURE_ADD_CONSUMER = """CREATE OR REPLACE PROCEDURE add_consumer(id UUID, name VARCHAR(100))
-    LANGUAGE SQL
-    AS $$
-    INSERT INTO consumer (id, name) VALUES (id, name);
-    $$;"""
-
-CREATE_PROCEDURE_ADD_SUBSCRIPTION = """CREATE OR REPLACE PROCEDURE add_subscription(id UUID, consumer UUID, routing_key VARCHAR(100))
-    LANGUAGE SQL
-    AS $$
-    INSERT INTO subscription (id, consumer, routing_key) VALUES (id, consumer, routing_key);
-    $$;"""
-
-CREATE_PROCEDURE_ADD_EVENT = """CREATE OR REPLACE PROCEDURE add_event(stream UUID, name VARCHAR(100), version INT, body TEXT, headers JSON)
-    LANGUAGE SQL
-    AS $$
-    INSERT INTO event (stream, name, version, body, headers) VALUES (stream, name, version, body, headers);
-    $$;"""
-
 SELECT_GET_STREAM_SNAPSHOT = """
     SELECT e.id, e.seq, e.stream, e.created, e.version, e.name, e.body, e.headers
     FROM event AS e
@@ -61,14 +31,15 @@ SELECT_GET_STREAM = """
     SELECT id, seq, stream, created, version, name, body, headers
     FROM event WHERE stream = %s ORDER BY version"""
 
+def get_stream_snapshot(columns):
+    x = pypika.Table('event')
+    y = pypika.Table('event')
+    query = pypika.Query.from_(x).select(*map(functools.partial(lambda x, y: getattr(x, y), x), columns))
+    query = query.left_join(y).on((y.name == "Snapshot") & (x.stream == y.stream) & (x.version>y.version))
+    return query.where((x.stream == pypika.terms.PseudoColumn('%s')) & (y.id.isnull())).orderby(x.version)
 
 INITIALIZE = [
     CREATE_EXTENSION_UUID,
-    CREATE_TABLE_AGGREGATE,
     CREATE_TABLE_STREAM,
     CREATE_TABLE_EVENT,
-    CREATE_TABLE_CONSUMER,
-    CREATE_TABLE_SUBSCRIPTION,
-    CREATE_PROCEDURE_ADD_CONSUMER,
-    CREATE_PROCEDURE_ADD_EVENT,
 ]
