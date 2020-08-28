@@ -30,6 +30,11 @@ class EventConsumer:
     async def __call__(self, event):
         await self.__queue.put(event)
 
+async def row_to_event(item):
+    return Event(item[3], json.loads(item[4]), { 'version': item[2], 'id': item[0], 'seq': item[6] })
+
+def apply_slice(query, ranges):
+
 
 class EventCollection:
     def __init__(self, store, query, database, with_queue=True):
@@ -54,12 +59,13 @@ class EventCollection:
     def __aiter__(self):
         if self.__with_queue:
             return asyncstdlib.itertools.chain(
-                estore.db.iterator(self.__database, str(self.__query), item_factory=self.__row_to_event),
+                estore.db.iterator(self.__database, str(self.__query), item_factory=row_to_event),
                 self.__store.subscribe())
-        return estore.db.iterator(self.__database, str(self.__query), item_factory=self.__row_to_event)
+        return estore.db.iterator(self.__database, str(self.__query), item_factory=row_to_event)
 
-    async def __row_to_event(self, item):
-        return Event(item[3], json.loads(item[4]), { 'version': item[2], 'id': item[0], 'seq': item[6] })
+class StreamCollection:
+    pass
+
 
 
 class Store:
