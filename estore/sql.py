@@ -9,9 +9,22 @@ CREATE_TABLE_STREAM = """CREATE TABLE IF NOT EXISTS stream (
     snapshot INT DEFAULT 0,
     data JSONB NOT NULL DEFAULT '{}')"""
 
+CREATE_TABLE_SEQUENCE = """CREATE TABLE IF NOT EXISTS sequence (
+    index INT NOT NULL)"""
+CREATE_FUNCTION_GETNEXTID = """CREATE OR REPLACE FUNCTION get_next_id()
+    RETURNS int
+    AS $$
+    DECLARE
+        next_index int;
+    BEGIN
+        EXECUTE 'UPDATE sequence SET index = index + 1 RETURNING index' INTO next_index;
+    RETURN next_index;
+    END;
+    $$ LANGUAGE 'plpgsql';"""
+
 CREATE_TABLE_EVENT = """CREATE TABLE IF NOT EXISTS event (
     id UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v1(),
-    seq SERIAL,
+    seq INT NOT NULL DEFAULT get_next_id(),
     stream UUID NOT NULL REFERENCES stream(id),
     created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     version INT NOT NULL,

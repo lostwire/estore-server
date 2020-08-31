@@ -34,7 +34,7 @@ async def row_to_event(item):
     return Event(item[3], json.loads(item[4]), { 'version': item[2], 'id': item[0], 'seq': item[6] })
 
 def apply_slice(query, ranges):
-
+    pass
 
 class EventCollection:
     def __init__(self, store, query, database, with_queue=True):
@@ -50,7 +50,10 @@ class EventCollection:
         if isinstance(item, slice):
             return self.__create(self.__query.getitem(item), with_queue=not bool(item.stop))
         if isinstance(item, uuid.UUID):
-            return self.__create(self.__query.filter.stream == str(item), with_queue=False)
+            return self.__get_stream_collection(item)
+
+    def __get_stream_collection(self, stream_id):
+        return self.__create(self.__query.filter.stream == str(item), with_queue=False)
 
     async def __length__(self):
         results = await estore.db.fetchone(self.__database, str(self.__query.length))
@@ -65,6 +68,7 @@ class EventCollection:
 
 class StreamCollection:
     pass
+
 
 
 
