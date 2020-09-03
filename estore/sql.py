@@ -44,12 +44,17 @@ SELECT_GET_STREAM = """
     SELECT id, seq, stream, created, version, name, body, headers
     FROM event WHERE stream = %s ORDER BY version"""
 
-def get_stream_snapshot(columns):
+def get_stream_snapshot(columns, stream_id):
     x = pypika.Table('event')
     y = pypika.Table('event')
     query = pypika.Query.from_(x).select(*map(functools.partial(lambda x, y: getattr(x, y), x), columns))
-    query = query.left_join(y).on((y.name == "Snapshot") & (x.stream == y.stream) & (x.version>y.version))
-    return query.where((x.stream == pypika.terms.PseudoColumn('%s')) & (y.id.isnull())).orderby(x.version)
+    query = query.left_join(y).on((y.name.like("%.Snapshot")) & (x.stream == y.stream) & (x.version<y.version))
+    #return query.where((x.stream == pypika.terms.PseudoColumn('%s')) & (y.id.isnull())).orderby(x.version)
+    return query.where((x.stream == str(stream_id)) & (y.id.isnull())).orderby(x.version)
+
+def get_stream(columns, stream_id):
+    e = pypika.Table('event')
+    return pypika.Table(e).select(*columns).where(e.stream == str(stream_id)).orderby(e.version)
 
 INITIALIZE = [
     CREATE_EXTENSION_UUID,

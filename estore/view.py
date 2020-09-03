@@ -47,7 +47,12 @@ class Event(object):
         return aiohttp.web.Response(text='Added')
 
     async def __consume(self, ws, start=None):
-        async for event in await self.__store[start:]:
+        collection = self.__store
+
+        if start:
+            collection = collection[start:]
+
+        async for event in collection:
             try:
                 await ws.send_json(event.dict())
             except Exception:
@@ -69,6 +74,6 @@ class Event(object):
 
     async def stream(self, request):
         output = []
-        async for item in await self.__store[get_stream_id_from_request(request)]:
+        async for item in self.__store[get_stream_id_from_request(request)]:
             output.append(item.dict())
         return aiohttp.web.json_response(output)

@@ -1,7 +1,8 @@
 import uuid
 import json
-import asyncio
 import logging
+import asyncio
+import functools
 
 import pypika
 import psycopg2.errors
@@ -11,7 +12,8 @@ import estore.db
 import estore.query
 
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
+
 
 class EventConsumer:
     def __init__(self, cleanup_callback, queue):
@@ -30,74 +32,124 @@ class EventConsumer:
     async def __call__(self, event):
         await self.__queue.put(event)
 
+
 async def row_to_event(item):
     return Event(item[3], json.loads(item[4]), { 'version': item[2], 'id': item[0], 'seq': item[6] })
 
-def apply_slice(query, ranges):
-    pass
 
-class EventCollection:
-    def __init__(self, store, query, database, with_queue=True):
+class EventsQueue:
+    def __init__(self, store, collection_factory):
         self.__store = store
+        self.__collection_factory = collection_factory
+
+    def __getitem__(self, item):
+        if isinstance(item, uuid.UUID):
+            return self.__collection_factory.stream_snapshot(item)
+
+        if isinstance(item, slice):
+            if item.stop:
+                return self.__collection_factory.events_only(item)
+            return self.__collection_factory.events_queue_range(item)
+
+    def __aiter__(self):
+        return self.__store.subscribe()
+
+
+class EventsQueueRange:
+    def __init__(self, store, query, database):
+        self.__query = query
+        self.__store = store
+        self.__database = database
+
+    def __getitem__(self, item):
+        pass
+
+    def __aiter__(self):
+        return asyncstdlib.itertools.chain(
+            estore.db.iterator(self.__database, str(self.__query), item_factory=row_to_event),self.__store.subscribe())
+
+
+class EventsOnly:
+    def __init__(self, query, database):
         self.__query = query
         self.__database = database
-        self.__with_queue = with_queue
 
-    def __create(self, query, with_queue=True):
-        return self.__class__(self.__store, query, self.__database, with_queue=with_queue)
+    def __getitem__(self, item):
+        pass
+
+    def __aiter__(self):
+        pass
+
+
+class StreamSnapshot:
+    def __init__(self, query, database, stream_id):
+        self.__query = query
+        self.__database = database
+        self.__stream_id = stream_id
 
     def __getitem__(self, item):
         if isinstance(item, slice):
-            return self.__create(self.__query.getitem(item), with_queue=not bool(item.stop))
-        if isinstance(item, uuid.UUID):
-            return self.__get_stream_collection(item)
-
-    def __get_stream_collection(self, stream_id):
-        return self.__create(self.__query.filter.stream == str(item), with_queue=False)
-
-    async def __length__(self):
-        results = await estore.db.fetchone(self.__database, str(self.__query.length))
-        return results[0]
+            return Stream(estore.query.stream(self.__stream).getitem(item))
 
     def __aiter__(self):
-        if self.__with_queue:
-            return asyncstdlib.itertools.chain(
-                estore.db.iterator(self.__database, str(self.__query), item_factory=row_to_event),
-                self.__store.subscribe())
         return estore.db.iterator(self.__database, str(self.__query), item_factory=row_to_event)
 
-class StreamCollection:
-    pass
+
+class Stream:
+    def __init__(self, query, database):
+        self.__query = query
+        self.__database = database
+
+    def __getitem__(self, item):
+        if isinstance(item, slice):
+            return self.__class__(self.__query.getitem(item), self.__database)
+
+    def __aiter__(self):
+        return estore.db.iterator(self.__database, str(self.__query), item_factory=row_to_event)
 
 
+class CollectionFactory:
+    def __init__(self, store, database):
+        self.__store = store
+        self.__database = database
+
+    def stream(self, stream_id, item):
+        return Stream(estore.query.stream(stream_id), self.__database)
+
+    def stream_snapshot(self, stream_id):
+        return StreamSnapshot(estore.query.stream_snapshot(stream_id), self.__database, stream_id)
+
+    def events_only(self, item):
+        return EventsOnly(estore.query.events().getitem(item), self.__database)
+
+    def events_queue(self):
+        return EventsQueue(self.__store, self)
+
+    def events_queue_range(self, item):
+        return EventsQueueRange(self.__store, estore.query.events().getitem(item), self.__database)
 
 
 class Store:
     def __init__(self, database):
         self.__database = database
         self.__consumers = []
-        columns = ['id','stream','version','name','body','headers','seq']
-        self.__event_collection = EventCollection(
-            self,
-            estore.query.QueryBuilder(pypika.Query.from_('event').select(*columns).orderby('created', order=pypika.Order.asc)),
-            database)
+        collection_factory = CollectionFactory(self, database)
+        self.__event_collection = collection_factory.events_queue()
 
     async def __notify_consumers(self, event):
-        logger.info("notifying consumers %s", event)
+        LOGGER.info("notifying consumers %s", event)
         for consumer in self.__consumers:
-            logger.info("notifying consumers %s", consumer)
+            LOGGER.info("notifying consumers %s", consumer)
             await consumer.put(event)
 
-    async def __length__(self):
-        return await length(self.__event_collection)
-
     def subscribe(self):
+        LOGGER.info("Subscribing consumer")
         queue = asyncio.Queue()
         consumer = EventConsumer(self.__unsubscribe, queue)
         self.__consumers.append(queue)
         return consumer
 
-    async def __getitem__(self, item):
+    def __getitem__(self, item):
         return self.__event_collection[item]
 
     async def append(self, event):
@@ -117,10 +169,11 @@ class Store:
         await self.__notify_consumers(event)
 
     def __unsubscribe(self, consumer):
-        logger.info("unsubscribing consumers %s", consumer)
+        LOGGER.info("unsubscribing consumers %s", consumer)
         self.__consumers.remove(consumer)
 
     def __aiter__(self):
+        LOGGER.info("Obtaining iterator")
         return getattr(self.__event_collection, '__aiter__')()
 
 

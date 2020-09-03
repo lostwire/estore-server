@@ -1,5 +1,11 @@
+import functools
+
 import pypika
 import pypika.functions
+
+import estore.sql
+
+EVENT_COLUMNS = ['id','stream','version','name','body','headers','seq']
 
 class QueryBuilder:
     def __init__(self, query):
@@ -60,3 +66,22 @@ class ColumnFilter:
 
     def __eq__(self, other):
         return self.__create(pypika.Field(self.__column_name) == other)
+
+def query_builder_decorator(f):
+    @functools.wraps(f)
+    def inner(*args):
+        return QueryBuilder(f(*args))
+    return inner
+
+@query_builder_decorator
+def stream_snapshot(stream_id):
+    return estore.sql.get_stream_snapshot(EVENT_COLUMNS, stream_id)
+
+@query_builder_decorator
+def stream(stream_id):
+    return estore.sql.get_stream(EVENT_COLUMNS, stream_id)
+
+@query_builder_decorator
+def events():
+    return pypika.Query.from_('event').select(*EVENT_COLUMNS).orderby('created', order=pypika.Order.asc)
+
