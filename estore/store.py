@@ -176,13 +176,18 @@ class Store:
         LOGGER.info("Obtaining iterator")
         return getattr(self.__event_collection, '__aiter__')()
 
+def map_dict(callback, data):
+    return dict(map(functools.partial(lambda x, y: (y[0], x(y[1])), callback), data.items()))
+
 
 class Event:
-    def __init__(self, name, data, headers):
+    def __init__(self, name, stream, version, created, data, headers):
         self.__name = name
+        self.__stream = stream
+        self.__version = version
+        self.__created = created
         self.__data = data
-        self.__headers = None
-        self.__stream = name.split('.').pop(0)
+        self.__headers = map_dict(str, headers)
         self.__set_headers(headers)
 
     @property
@@ -205,13 +210,11 @@ class Event:
     def json(self):
         return json.dumps(dict(self))
 
-    def __set_headers(self, headers):
-        keys, values = zip(*headers.items())
-        self.__headers = dict(zip(keys, map(str, values)))
-
     def dict(self):
         return {
             'name': self.__name,
+            'stream': self.__stream,
+            'version': self.__version,
             'data': self.__data,
             'headers': self.__headers }
 
