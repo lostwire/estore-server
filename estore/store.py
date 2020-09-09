@@ -1,3 +1,5 @@
+""" Classes for handling database connection and stuff """
+
 import uuid
 import json
 import logging
