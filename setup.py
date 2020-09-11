@@ -1,22 +1,22 @@
-from setuptools import setup, find_packages
+import setuptools
 
-setup(name='estore',
+setuptools.setup(
+    name='estore-server',
     version='0.0.1',
-    description='Event Store',
+    description='Event Store Server',
     author='Jnxy',
     author_email='jnxy@lostwire.net',
     license='BSD',
     zip_safe=False,
     include_package_data=True,
-    entry_points = { 'console_scripts': 'estore=estore.cli:cli'},
+    entry_points = { 'console_scripts': 'estore=estore.server.cli:cli'},
     install_requires = [
+        'Click',
         'aiopg',
         'asyncio',
         'aiohttp',
-        'Click',
         'aio-pika',
-        'cryptography',
-        'aiohttp-session',
         'configparser2',
+        'aiohttp-session',
     ],
-    packages=find_packages())
+    packages=setuptools.find_namespace_packages(include=['estore.*']))

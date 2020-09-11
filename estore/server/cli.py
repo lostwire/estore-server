@@ -2,7 +2,7 @@ import click
 import psycopg2
 import configparser
 
-import estore.sql
+import estore.server.sql
 
 @click.group()
 @click.option('--config', envvar='config', default='./config.ini', type=click.Path(exists=True))

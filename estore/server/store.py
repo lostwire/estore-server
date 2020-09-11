@@ -4,14 +4,14 @@ import uuid
 import json
 import logging
 import asyncio
-import functools
 
 import pypika
 import psycopg2.errors
 import asyncstdlib.itertools
 
-import estore.db
-import estore.query
+import estore.base
+import estore.server.db
+import estore.server.query
 
 
 LOGGER = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class EventConsumer:
 
 
 async def row_to_event(item):
-    return Event(item[3], json.loads(item[4]), { 'version': item[2], 'id': item[0], 'seq': item[6] })
+    return estore.base.Event(name=item[3], data=json.loads(item[4], version=item[2])
 
 
 class EventsQueue:
@@ -177,54 +177,3 @@ class Store:
     def __aiter__(self):
         LOGGER.info("Obtaining iterator")
         return getattr(self.__event_collection, '__aiter__')()
-
-def map_dict(callback, data):
-    return dict(map(functools.partial(lambda x, y: (y[0], x(y[1])), callback), data.items()))
-
-
-class Event:
-    def __init__(self, name, stream, version, created, data, headers):
-        self.__name = name
-        self.__stream = stream
-        self.__version = version
-        self.__created = created
-        self.__data = data
-        self.__headers = map_dict(str, headers)
-        self.__set_headers(headers)
-
-    @property
-    def name(self):
-        return self.__name
-
-    @property
-    def data(self):
-        return self.__data
-
-    @property
-    def stream(self):
-        return self.__stream
-
-    @property
-    def headers(self):
-        return self.__headers
-
-    @property
-    def json(self):
-        return json.dumps(dict(self))
-
-    def dict(self):
-        return {
-            'name': self.__name,
-            'stream': self.__stream,
-            'version': self.__version,
-            'data': self.__data,
-            'headers': self.__headers }
-
-    def __dir__(self):
-        return dir(self)
-
-    def __dict__(self):
-        return self.dict()
-
-    def __repr__(self):
-        return f"Event (name: {self.name}, data: {self.data}, headers: {self.headers})"
