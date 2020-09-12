@@ -8,7 +8,7 @@ import aio_pika
 import aiohttp.web
 import aiohttp_session
 
-import estore.store
+import estore.server.store
 
 logger = logging.getLogger(__name__)
 def process_headers(headers):
@@ -31,7 +31,7 @@ async def get_event_from_request(request):
     stream = request.match_info['stream']
     version = headers['Version']
     body = await request.post()
-    return estore.store.Event('.'.join((stream, name)), dict(body), headers)
+    return estore.server.store.Event('.'.join((stream, name)), dict(body), headers)
 
 
 def get_stream_id_from_request(request):

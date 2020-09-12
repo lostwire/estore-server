@@ -18,7 +18,7 @@ def cli(ctx, config):
 def initialize(ctx):
     """ Initialize estore application """
     cursor = ctx.obj.cursor()
-    for query in estore.sql.INITIALIZE:
+    for query in estore.server.sql.INITIALIZE:
         cursor.execute(query)
         click.echo(query)
     ctx.obj.commit()

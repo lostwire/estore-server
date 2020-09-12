@@ -1,7 +1,7 @@
 import logging
 import sys
 
-import estore.app
+import estore.server.app
 
 
 if __name__ == '__main__':
@@ -14,5 +14,5 @@ if __name__ == '__main__':
     handler.setFormatter(formatter)
     root.addHandler(handler)
 
-    app = estore.app.init()
+    app = estore.server.app.init()
     app.run()

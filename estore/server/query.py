@@ -3,7 +3,7 @@ import functools
 import pypika
 import pypika.functions
 
-import estore.sql
+import estore.server.sql
 
 EVENT_COLUMNS = ['id','stream','version','name','body','headers','seq']
 
@@ -75,11 +75,11 @@ def query_builder_decorator(f):
 
 @query_builder_decorator
 def stream_snapshot(stream_id):
-    return estore.sql.get_stream_snapshot(EVENT_COLUMNS, stream_id)
+    return estore.server.sql.get_stream_snapshot(EVENT_COLUMNS, stream_id)
 
 @query_builder_decorator
 def stream(stream_id):
-    return estore.sql.get_stream(EVENT_COLUMNS, stream_id)
+    return estore.server.sql.get_stream(EVENT_COLUMNS, stream_id)
 
 @query_builder_decorator
 def events():

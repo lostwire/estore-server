@@ -13,9 +13,11 @@ setuptools.setup(
     install_requires = [
         'Click',
         'aiopg',
+        'pypika',
         'asyncio',
         'aiohttp',
         'aio-pika',
+        'asyncstdlib',
         'configparser2',
         'aiohttp-session',
     ],

@@ -9,7 +9,7 @@ import pypika
 import psycopg2.errors
 import asyncstdlib.itertools
 
-import estore.base
+#import estore.base
 import estore.server.db
 import estore.server.query
 
@@ -35,8 +35,15 @@ class EventConsumer:
         await self.__queue.put(event)
 
 
+class Event:
+    def __init__(self, **kwargs):
+        self.__args = kwargs
+    def getattr(self, name):
+        return self.__args[name]
+
 async def row_to_event(item):
-    return estore.base.Event(name=item[3], data=json.loads(item[4], version=item[2])
+    return item
+    #return estore.base.Event(name=item[3], data=json.loads(item[4], version=item[2])
 
 
 class EventsQueue:
