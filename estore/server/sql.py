@@ -4,13 +4,9 @@ import functools
 
 CREATE_EXTENSION_UUID = 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'
 
-CREATE_TABLE_STREAM = """CREATE TABLE IF NOT EXISTS stream (
-    id UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v1(),
-    snapshot INT DEFAULT 0,
-    data JSONB NOT NULL DEFAULT '{}')"""
-
 CREATE_TABLE_SEQUENCE = """CREATE TABLE IF NOT EXISTS sequence (
     index INT NOT NULL)"""
+
 CREATE_FUNCTION_GETNEXTID = """CREATE OR REPLACE FUNCTION get_next_id()
     RETURNS int
     AS $$
@@ -25,7 +21,7 @@ CREATE_FUNCTION_GETNEXTID = """CREATE OR REPLACE FUNCTION get_next_id()
 CREATE_TABLE_EVENT = """CREATE TABLE IF NOT EXISTS event (
     id UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v1(),
     seq INT NOT NULL DEFAULT get_next_id(),
-    stream UUID NOT NULL REFERENCES stream(id),
+    stream UUID NOT NULL,
     created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     version INT NOT NULL,
     name VARCHAR(100) NOT NULL,
@@ -44,6 +40,8 @@ SELECT_GET_STREAM = """
     SELECT id, seq, stream, created, version, name, body, headers
     FROM event WHERE stream = %s ORDER BY version"""
 
+CREATE_INDEX_EVENT_IDX = """CREATE INDEX event_idx ON event (stream)"""
+
 def get_stream_snapshot(columns, stream_id):
     x = pypika.Table('event')
     y = pypika.Table('event')
@@ -57,7 +55,9 @@ def get_stream(columns, stream_id):
     return pypika.Table(e).select(*columns).where(e.stream == str(stream_id)).orderby(e.version)
 
 INITIALIZE = [
+    CREATE_TABLE_SEQUENCE,
+    CREATE_FUNCTION_GETNEXTID,
     CREATE_EXTENSION_UUID,
-    CREATE_TABLE_STREAM,
     CREATE_TABLE_EVENT,
+    CREATE_INDEX_EVENT_IDX,
 ]

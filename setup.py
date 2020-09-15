@@ -1,7 +1,7 @@
 import setuptools
 
 setuptools.setup(
-    name='estore-server',
+    name='estore.server',
     version='0.0.1',
     description='Event Store Server',
     author='Jnxy',

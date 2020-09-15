@@ -9,7 +9,7 @@ import pypika
 import psycopg2.errors
 import asyncstdlib.itertools
 
-#import estore.base
+import estore.base.event
 import estore.server.db
 import estore.server.query
 
@@ -35,15 +35,14 @@ class EventConsumer:
         await self.__queue.put(event)
 
 
-class Event:
-    def __init__(self, **kwargs):
-        self.__args = kwargs
-    def getattr(self, name):
-        return self.__args[name]
-
 async def row_to_event(item):
-    return item
-    #return estore.base.Event(name=item[3], data=json.loads(item[4], version=item[2])
+    return estore.base.Event(
+        name=item[3],
+        stream=item[1],
+        headers=json.loads(item[5]),
+        created=item[7],
+        data=json.loads(item[4]),
+        version=item[2])
 
 
 class EventsQueue:
@@ -162,19 +161,12 @@ class Store:
         return self.__event_collection[item]
 
     async def append(self, event):
-        try:
-            await estore.db.insert(self.__database, 'event', {
-                'stream': event.stream,
-                'version': event.headers['Version'],
-                'name': event.name,
-                'body': json.dumps(event.data),
-                'headers': json.dumps(event.headers)} )
-        except psycopg2.errors.ForeignKeyViolation:
-            await estore.db.insert(self.__database, 'stream', {
-                'id': event.stream,
-                'snapshot': 0,
-                'data': json.dumps({})})
-            self[item] = event
+        await estore.db.insert(self.__database, 'event', {
+            'stream': event.stream,
+            'version': event.headers['Version'],
+            'name': event.name,
+            'body': json.dumps(event.data),
+            'headers': json.dumps(event.headers)} )
         await self.__notify_consumers(event)
 
     def __unsubscribe(self, consumer):

@@ -5,7 +5,7 @@ import pypika.functions
 
 import estore.server.sql
 
-EVENT_COLUMNS = ['id','stream','version','name','body','headers','seq']
+EVENT_COLUMNS = ['id','stream','version','name','body','headers','seq','created']
 
 class QueryBuilder:
     def __init__(self, query):
