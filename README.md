@@ -1,13 +1,11 @@
 # event-store
 
-Event store running on PostgreSQL and RabbitMQ
-
-It is in a very early stage so probably insanely buggy.
+Very simple Event store database running on PostgreSQL
 
 #Installing
 
 ```bash
-estore initialize
+pip install estore-server
 ```
 
 #Running
