@@ -138,6 +138,11 @@ class CollectionFactory:
 
 
 class Store:
+    """Store class, place where all the fun begins...
+    Example:
+    async for event in store:
+        async process_event(event)
+    """
     def __init__(self, database):
         self.__database = database
         self.__consumers = []
