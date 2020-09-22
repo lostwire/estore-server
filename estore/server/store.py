@@ -74,7 +74,7 @@ class EventsQueueRange:
 
     def __aiter__(self):
         return asyncstdlib.itertools.chain(
-            estore.db.iterator(self.__database, str(self.__query), item_factory=row_to_event),self.__store.subscribe())
+            estore.server.db.iterator(self.__database, str(self.__query), item_factory=row_to_event),self.__store.subscribe())
 
 
 class EventsOnly:
@@ -97,10 +97,10 @@ class StreamSnapshot:
 
     def __getitem__(self, item):
         if isinstance(item, slice):
-            return Stream(estore.query.stream(self.__stream).getitem(item))
+            return Stream(estore.server.query.stream(self.__stream).getitem(item))
 
     def __aiter__(self):
-        return estore.db.iterator(self.__database, str(self.__query), item_factory=row_to_event)
+        return estore.server.db.iterator(self.__database, str(self.__query), item_factory=row_to_event)
 
 
 class Stream:
@@ -113,7 +113,7 @@ class Stream:
             return self.__class__(self.__query.getitem(item), self.__database)
 
     def __aiter__(self):
-        return estore.db.iterator(self.__database, str(self.__query), item_factory=row_to_event)
+        return estore.server.db.iterator(self.__database, str(self.__query), item_factory=row_to_event)
 
 
 class CollectionFactory:
@@ -122,19 +122,19 @@ class CollectionFactory:
         self.__database = database
 
     def stream(self, stream_id, item):
-        return Stream(estore.query.stream(stream_id), self.__database)
+        return Stream(estore.server.query.stream(stream_id), self.__database)
 
     def stream_snapshot(self, stream_id):
-        return StreamSnapshot(estore.query.stream_snapshot(stream_id), self.__database, stream_id)
+        return StreamSnapshot(estore.server.query.stream_snapshot(stream_id), self.__database, stream_id)
 
     def events_only(self, item):
-        return EventsOnly(estore.query.events().getitem(item), self.__database)
+        return EventsOnly(estore.server.query.events().getitem(item), self.__database)
 
     def events_queue(self):
         return EventsQueue(self.__store, self)
 
     def events_queue_range(self, item):
-        return EventsQueueRange(self.__store, estore.query.events().getitem(item), self.__database)
+        return EventsQueueRange(self.__store, estore.server.query.events().getitem(item), self.__database)
 
 
 class Store:
@@ -166,7 +166,7 @@ class Store:
         return self.__event_collection[item]
 
     async def append(self, event):
-        await estore.db.insert(self.__database, 'event', {
+        await estore.server.db.insert(self.__database, 'event', {
             'stream': event.stream,
             'version': event.headers['Version'],
             'name': event.name,
