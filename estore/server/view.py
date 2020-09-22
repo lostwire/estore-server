@@ -4,7 +4,6 @@ import logging
 import functools
 import asyncio
 
-import aio_pika
 import aiohttp.web
 import aiohttp_session
 
