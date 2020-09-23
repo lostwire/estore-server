@@ -41,6 +41,7 @@ SELECT_GET_STREAM = """
     FROM event WHERE stream = %s ORDER BY version"""
 
 CREATE_INDEX_EVENT_IDX = """CREATE INDEX event_idx ON event (stream)"""
+INSERT_FIRST_SEQUENCE = "INSERT INTO sequence VALUES (0)"
 
 def get_stream_snapshot(columns, stream_id):
     x = pypika.Table('event')
@@ -60,4 +61,5 @@ INITIALIZE = [
     CREATE_EXTENSION_UUID,
     CREATE_TABLE_EVENT,
     CREATE_INDEX_EVENT_IDX,
+    INSERT_FIRST_SEQUENCE
 ]

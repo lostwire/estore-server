@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='estore-server',
-    version='0.0.1',
+    version='0.0.2',
     description='Event Store Server',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -23,7 +23,7 @@ setuptools.setup(
         'asyncstdlib',
         'configparser2',
         'aiohttp-session',
-        'estore-base',
+        'estore-base==0.0.8',
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",

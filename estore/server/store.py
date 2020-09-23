@@ -39,11 +39,10 @@ async def row_to_event(item):
     return estore.base.Event(
         name=item[3],
         stream=item[1],
-        headers=json.loads(item[5]),
+        headers=item[5],
         created=item[7],
         data=json.loads(item[4]),
         version=item[2])
-
 
 class EventsQueue:
     def __init__(self, store, collection_factory):
@@ -168,7 +167,7 @@ class Store:
     async def append(self, event):
         await estore.server.db.insert(self.__database, 'event', {
             'stream': event.stream,
-            'version': event.headers['Version'],
+            'version': event.version,
             'name': event.name,
             'body': json.dumps(event.data),
             'headers': json.dumps(event.headers)} )

@@ -12,7 +12,7 @@ import estore.server.store
 logger = logging.getLogger(__name__)
 def process_headers(headers):
     return dict(map(
-        lambda x: (x[0].split('X-ES-')[1], x[1]),
+        lambda x: (x[0][5:], x[1]),
         filter(lambda x: x[0].startswith('X-ES-'), headers.items())))
 
 
@@ -25,12 +25,14 @@ def init(app, store):
 
 
 async def get_event_from_request(request):
+    print(request.headers)
     headers = process_headers(request.headers)
     name = request.match_info['name']
     stream = request.match_info['stream']
     version = headers['Version']
+    del headers['Version']
     body = await request.post()
-    return estore.server.store.Event('.'.join((stream, name)), dict(body), headers)
+    return estore.base.Event(name, uuid.UUID(stream), version, dict(body), headers)
 
 
 def get_stream_id_from_request(request):
@@ -73,6 +75,6 @@ class Event(object):
 
     async def stream(self, request):
         output = []
-        async for item in self.__store[get_stream_id_from_request(request)]:
-            output.append(item.dict())
+        async for event in self.__store[get_stream_id_from_request(request)]:
+            output.append(dict(event))
         return aiohttp.web.json_response(output)
