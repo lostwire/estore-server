@@ -18,6 +18,27 @@ CREATE_FUNCTION_GETNEXTID = """CREATE OR REPLACE FUNCTION get_next_id()
     END;
     $$ LANGUAGE 'plpgsql';"""
 
+CREATE_FUNCTION_AUTOINC = """
+
+CREATE OR REPLACE FUNCTION auto_inc(name text, val int default null)
+    RETURNS int
+AS $$
+DECLARE
+        next_index int;
+        BEGIN
+                EXECUTE format('UPDATE stuff SET value = COALESCE(%L, value + 1) WHERE name = %L RETURNING value', val, name) INTO next_index;
+                IF next_index::boolean THEN
+                        RETURN next_index;
+                END IF;
+                BEGIN
+                        EXECUTE format('INSERT INTO stuff VALUES (%L, 0)', name);
+                        RETURN 0;
+                END;
+        END;
+        $$ LANGUAGE 'plpgsql'
+
+"""
+
 CREATE_TABLE_EVENT = """CREATE TABLE IF NOT EXISTS event (
     id UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v1(),
     seq INT NOT NULL DEFAULT get_next_id(),
