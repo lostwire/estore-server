@@ -144,7 +144,7 @@ class Store:
         self.__consumers = []
 
     async def initialize(self):
-        pass
+        await self.__db_engine.initialize()
 
     async def __notify_consumers(self, event):
         LOGGER.info("notifying consumers %s", event)
@@ -159,16 +159,25 @@ class Store:
         self.__consumers.append(queue)
         return consumer
 
+    async def close(self):
+        await self.__db_engine.close()
+
+    def __del__(self):
+        LOGGER.info("Dying")
+
     def __getitem__(self, item):
         return self.__event_collection[item]
 
     async def append(self, event):
+        await self.__db_engine.insert(event)
+        """
         await estore.server.db.insert(self.__database, 'event', {
             'stream': event.stream,
             'version': event.version,
             'name': event.name,
             'body': json.dumps(event.data),
             'headers': json.dumps(event.headers)} )
+        """
         await self.__notify_consumers(event)
 
     def __unsubscribe(self, consumer):
