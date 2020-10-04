@@ -130,7 +130,7 @@ class CollectionFactory:
         return EventsOnly(estore.server.query.events().getitem(item), self.__database)
 
     def events_queue(self):
-        return EventsQueue(self.__store, self)
+        return EvensQueue(self.__store, self)
 
     def events_queue_range(self, item):
         return EventsQueueRange(self.__store, estore.server.query.events().getitem(item), self.__database)
@@ -142,8 +142,8 @@ class Store:
     async for event in store:
         async process_event(event)
     """
-    def __init__(self, database):
-        self.__database = database
+    def __init__(self, db_engine):
+        self.__db_engine = db_engine
         self.__consumers = []
         collection_factory = CollectionFactory(self, database)
         self.__event_collection = collection_factory.events_queue()
