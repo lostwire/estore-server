@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 async def initialize_store(config, loop):
-    return estore.server.store.Store(await estore.server.db.initialize(config, loop))
+    return estore.server.store.Store(await estore.server.db.init.initialize(config, loop))
+
 
 async def init(app):
     """ Initialize whole application """

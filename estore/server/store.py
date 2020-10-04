@@ -10,9 +10,6 @@ import psycopg2.errors
 import asyncstdlib.itertools
 
 import estore.base.event
-import estore.server.db
-import estore.server.query
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -145,8 +142,9 @@ class Store:
     def __init__(self, db_engine):
         self.__db_engine = db_engine
         self.__consumers = []
-        collection_factory = CollectionFactory(self, database)
-        self.__event_collection = collection_factory.events_queue()
+
+    async def initialize(self):
+        pass
 
     async def __notify_consumers(self, event):
         LOGGER.info("notifying consumers %s", event)

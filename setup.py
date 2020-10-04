@@ -16,16 +16,18 @@ setuptools.setup(
     entry_points = { 'console_scripts': 'estore=estore.server.cli:cli'},
     install_requires = [
         'Click',
-        'aiopg',
         'pypika',
         'asyncio',
         'aiohttp',
-        'aiosqlite',
         'asyncstdlib',
         'configparser2',
-        'aiohttp-session',
         'estore-base==0.0.8',
     ],
+    extras_require = {
+        "postgres": [ "aiopg" ],
+        "sqlite": [ "aiosqlite" ],
+        "all": [ "aiopg", "aiosqlite" ],
+    },
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Framework :: AsyncIO",

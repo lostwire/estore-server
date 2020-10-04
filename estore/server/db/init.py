@@ -1,2 +1,2 @@
-def initialize(config):
-    pass§
+async def initialize(config, loop):
+    pass
