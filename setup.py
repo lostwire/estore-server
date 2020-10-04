@@ -20,6 +20,7 @@ setuptools.setup(
         'pypika',
         'asyncio',
         'aiohttp',
+        'aiosqlite',
         'asyncstdlib',
         'configparser2',
         'aiohttp-session',
