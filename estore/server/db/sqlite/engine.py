@@ -28,6 +28,9 @@ class SQLite(estore.server.db.engine.Engine):
     async def init(self):
         await self.__connection.create_function('DU_STREAM', 1, self.__du_stream)
 
+    async def create_collection(self, store):
+        pass
+
     def __du_stream(self, stream):
         cursor = self.__conn.cursor()
         cursor.execute("SELECT * FROM stream WHERE id = ?", (stream,))

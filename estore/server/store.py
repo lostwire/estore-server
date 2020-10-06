@@ -32,8 +32,6 @@ class EventConsumer:
         await self.__queue.put(event)
 
 
-
-
 class Store:
     """Store class, place where all the fun begins...
     Example:
@@ -71,14 +69,6 @@ class Store:
 
     async def append(self, event):
         await self.__db_engine.insert(event)
-        """
-        await estore.server.db.insert(self.__database, 'event', {
-            'stream': event.stream,
-            'version': event.version,
-            'name': event.name,
-            'body': json.dumps(event.data),
-            'headers': json.dumps(event.headers)} )
-        """
         await self.__notify_consumers(event)
 
     def __unsubscribe(self, consumer):
