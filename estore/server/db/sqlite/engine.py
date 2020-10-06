@@ -53,6 +53,9 @@ class SQLite(estore.server.db.engine.Engine):
         await cursor.close()
         LOGGER.info("Changes committed")
 
+    async def stream_snapshot(self):
+        pass
+
     async def close(self):
         LOGGER.info("Dying")
         await self.__connection.close()

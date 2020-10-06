@@ -1,6 +1,4 @@
-import logging
-import sys
-
+""" Run application if loaded as a module """
 import estore.server.app
 
 
