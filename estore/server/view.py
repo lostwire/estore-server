@@ -5,7 +5,6 @@ import functools
 import asyncio
 
 import aiohttp.web
-import aiohttp_session
 
 import estore.server.store
 

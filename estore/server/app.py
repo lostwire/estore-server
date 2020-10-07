@@ -4,20 +4,25 @@ import logging
 
 import configparser
 
-import estore.server.db
 import estore.server.web
 import estore.server.view
 import estore.server.store
 import estore.server.builtins
+import estore.server.db.init
 
 
 logger = logging.getLogger(__name__)
 
 
+async def initialize_store(config, loop):
+    return estore.server.store.Store(await estore.server.db.init.initialize(config, loop))
+
+
 async def init(app):
+    """ Initialize whole application """
     config = configparser.ConfigParser()
     config.read(os.environ.get('CONFIG_PATH', './config.ini'))
-    estore.server.view.init(app, estore.server.store.Store(await estore.server.db.init(config['general']['db'], app.loop)))
+    estore.server.view.init(app, await initialize_store(config, app.loop))
 
 
 def create_app():
