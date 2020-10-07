@@ -41,18 +41,16 @@ class Store:
     def __init__(self, db_engine):
         self.__db_engine = db_engine
         self.__consumers = []
+        self.__collection = db_engine.create_collection(self)
 
     async def initialize(self):
         await self.__db_engine.initialize()
 
     async def __notify_consumers(self, event):
-        LOGGER.info("notifying consumers %s", event)
         for consumer in self.__consumers:
-            LOGGER.info("notifying consumers %s", consumer)
             await consumer.put(event)
 
     def subscribe(self):
-        LOGGER.info("Subscribing consumer")
         queue = asyncio.Queue()
         consumer = EventConsumer(self.__unsubscribe, queue)
         self.__consumers.append(queue)
@@ -61,20 +59,15 @@ class Store:
     async def close(self):
         await self.__db_engine.close()
 
-    def __del__(self):
-        LOGGER.info("Dying")
-
     def __getitem__(self, item):
-        return self.__event_collection[item]
+        return self.__collection[item]
 
     async def append(self, event):
         await self.__db_engine.insert(event)
         await self.__notify_consumers(event)
 
     def __unsubscribe(self, consumer):
-        LOGGER.info("unsubscribing consumers %s", consumer)
         self.__consumers.remove(consumer)
 
     def __aiter__(self):
-        LOGGER.info("Obtaining iterator")
-        return getattr(self.__event_collection, '__aiter__')()
+        return getattr(self.__collection, '__aiter__')()

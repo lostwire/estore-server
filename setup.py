@@ -12,6 +12,7 @@ setuptools.setup(
     author='Jnxy',
     author_email='jnxy@lostwire.net',
     license='BSD',
+    py_modules=["estore.server"],
     url='https://github.com/lostwire/estore-server',
     entry_points = { 'console_scripts': 'estore=estore.server.cli:cli'},
     install_requires = [
@@ -24,9 +25,9 @@ setuptools.setup(
         'estore-base==0.0.8',
     ],
     extras_require = {
-        "postgres": [ "aiopg" ],
+        "postgres": [ "aiopg", "psycopg2" ],
         "sqlite": [ "aiosqlite" ],
-        "all": [ "aiopg", "aiosqlite" ],
+        "all": [ "aiopg", "aiosqlite", "psycopg2" ],
     },
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
