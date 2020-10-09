@@ -1,11 +1,17 @@
+import json
+import uuid
+import logging
+
 import estore.server.base
+import estore.server.db.sqlite.query
+
+LOGGER = logging.getLogger(__name__)
 
 async def row_to_event(item):
     return estore.base.Event(
         name=item[3],
         stream=item[1],
         headers=item[5],
-        created=item[7],
         data=json.loads(item[4]),
         version=item[2])
 
@@ -34,11 +40,12 @@ class EventsQueueRange(estore.server.base.Collection):
         self.__database = database
 
     def __getitem__(self, item):
+        return { 'one': 'two' }
         pass
 
     def __aiter__(self):
         return asyncstdlib.itertools.chain(
-            estore.server.db.iterator(self.__database, str(self.__query), item_factory=row_to_event),self.__store.subscribe())
+            self.__database.iterate(str(self.__query), item_factory=row_to_event),self.__store.subscribe())
 
 
 class EventsOnly(estore.server.base.Collection):
@@ -47,7 +54,7 @@ class EventsOnly(estore.server.base.Collection):
         self.__database = database
 
     def __getitem__(self, item):
-        pass
+        return { 'one': 'two' }
 
     def __aiter__(self):
         pass
@@ -64,7 +71,7 @@ class StreamSnapshot(estore.server.base.Collection):
             return Stream(estore.server.query.stream(self.__stream).getitem(item))
 
     def __aiter__(self):
-        return estore.server.db.iterator(self.__database, str(self.__query), item_factory=row_to_event)
+        return self.__database.iterate(str(self.__query), item_factory=row_to_event)
 
 
 class Stream(estore.server.base.Collection):
@@ -80,23 +87,22 @@ class Stream(estore.server.base.Collection):
         return estore.server.db.iterator(self.__database, str(self.__query), item_factory=row_to_event)
 
 
-
 class CollectionFactory:
     def __init__(self, store, database):
         self.__store = store
         self.__database = database
 
     def stream(self, stream_id, item):
-        return Stream(estore.server.query.stream(stream_id), self.__database)
+        return Stream(estore.server.db.sqlite.query.stream(stream_id), self.__database)
 
     def stream_snapshot(self, stream_id):
-        return StreamSnapshot(estore.server.query.stream_snapshot(stream_id), self.__database, stream_id)
+        return StreamSnapshot(estore.server.db.sqlite.query.stream_snapshot(stream_id), self.__database, stream_id)
 
     def events_only(self, item):
-        return EventsOnly(estore.server.query.events().getitem(item), self.__database)
+        return EventsOnly(estore.server.db.sqlite.query.events().getitem(item), self.__database)
 
     def events_queue(self):
-        return EvensQueue(self.__store, self)
+        return EventsQueue(self.__store, self)
 
     def events_queue_range(self, item):
-        return EventsQueueRange(self.__store, estore.server.query.events().getitem(item), self.__database)
+        return EventsQueueRange(self.__store, estore.server.db.sqlite.query.events().getitem(item), self.__database)
