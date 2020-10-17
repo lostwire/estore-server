@@ -15,7 +15,8 @@ CREATE_TABLE_EVENT = """
         version INTEGER NOT NULL,
         body TEXT NOT NULL,
         headers TEXT NOT NULL,
-        FOREIGN KEY(stream) REFERENCES stream(id))"""
+        FOREIGN KEY(stream) REFERENCES stream(id),
+        UNIQUE(stream, version))"""
 
 CREATE_TRIGGER_AUTO_SEQUENCE = """
     CREATE TRIGGER IF NOT EXISTS auto_sequence AFTER INSERT ON event

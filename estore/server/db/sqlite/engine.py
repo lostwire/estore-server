@@ -34,9 +34,9 @@ class SQLite(estore.server.db.engine.Engine):
         collection_factory = estore.server.db.sqlite.collection.CollectionFactory(store, self)
         return collection_factory.events_queue()
 
-    def __du_stream(self, stream):
-        cursor = self.__conn.cursor()
-        cursor.execute("SELECT * FROM stream WHERE id = ?", (stream,))
+    async def __du_stream(self, stream):
+        cursor = await self.__connection.execute(
+            "SELECT * FROM stream WHERE id = ?", (stream,))
         if not cursor.rowcount > 0:
             cursor.execute("INSERT INTO stream (id, version) VALUES(?,0)", (stream,))
         return stream
