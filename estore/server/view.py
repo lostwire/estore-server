@@ -28,8 +28,9 @@ async def get_event_from_request(request):
     headers = process_headers(request.headers)
     name = request.match_info['name']
     stream = request.match_info['stream']
-    version = headers['Version']
-    del headers['Version']
+    version = headers.get('Version', None)
+    if version:
+        del headers['Version']
     body = await request.post()
     return estore.base.Event(name, uuid.UUID(stream), version, dict(body), headers)
 

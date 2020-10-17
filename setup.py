@@ -12,7 +12,6 @@ setuptools.setup(
     author='Jnxy',
     author_email='jnxy@lostwire.net',
     license='BSD',
-    py_modules=["estore.server"],
     url='https://github.com/lostwire/estore-server',
     entry_points = { 'console_scripts': 'estore=estore.server.cli:cli'},
     install_requires = [
